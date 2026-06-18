@@ -81,31 +81,31 @@ updateHud();
 renderCanvas(performance.now());
 
 function hitGain(distance = target.radius) {
-  const base = Math.max(6.4, 17.2 - currentIndex * 0.45);
+  const base = Math.max(7.2, 18.4 - currentIndex * 0.38);
   const accuracy = 1 - clamp(distance / Math.max(1, target.radius), 0, 1);
-  const comboBoost = Math.min(4.8, Math.floor(combo / 5) * 0.7);
-  return base + accuracy * 4.2 + comboBoost;
+  const comboBoost = Math.min(5.2, Math.floor(combo / 5) * 0.75);
+  return base + accuracy * 4.6 + comboBoost;
 }
 
 function missPenalty() {
-  return 4.6 + currentIndex * 0.34 + progress * 0.045;
+  return 3.3 + currentIndex * 0.24 + progress * 0.032;
 }
 
 function decayPerSecond() {
-  const stagePressure = 5.6 + currentIndex * 0.62;
-  const progressPressure = 0.8 + Math.pow(progress / 100, 1.82) * 4.15;
+  const stagePressure = 4.2 + currentIndex * 0.46;
+  const progressPressure = 0.75 + Math.pow(progress / 100, 1.78) * 3.3;
   return stagePressure * progressPressure;
 }
 
 function targetRadius() {
   const scale = clamp(Math.min(canvasSize.width, canvasSize.height) / 520, 0.72, 1.1);
-  const size = 45 - currentIndex * 1.05 - progress * 0.055;
-  return clamp(size * scale, 20 * scale, 46 * scale);
+  const size = 50 - currentIndex * 0.82 - progress * 0.04;
+  return clamp(size * scale, 24 * scale, 52 * scale);
 }
 
 function targetSpeed() {
   const scale = clamp(Math.min(canvasSize.width, canvasSize.height) / 520, 0.82, 1.15);
-  return (165 + currentIndex * 26 + progress * 1.35) * scale;
+  return (132 + currentIndex * 19 + progress * 0.95) * scale;
 }
 
 function loadImage(index) {
