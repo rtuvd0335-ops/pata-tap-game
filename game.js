@@ -10,7 +10,9 @@ const startOverlay = document.querySelector("#startOverlay");
 const startButton = document.querySelector("#startButton");
 const resetButton = document.querySelector("#resetButton");
 const muteButton = document.querySelector("#muteButton");
+const shareButton = document.querySelector("#shareButton");
 const difficultyButtons = [...document.querySelectorAll("[data-difficulty]")];
+const shareUrl = "https://rtuvd0335-ops.github.io/pata-tap-game/";
 
 const config = {
   easy: { speed: 235, radius: 64, round: 45, dodge: 0.55, name: "轻松" },
@@ -518,6 +520,38 @@ muteButton.addEventListener("click", () => {
   muteButton.setAttribute("aria-label", muted ? "静音" : "声音");
 });
 
+shareButton.addEventListener("click", async () => {
+  const text = `啪嗒挑战：${shareUrl}`;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: "啪嗒挑战", text: "来试试这个卡通点击反应小游戏", url: shareUrl });
+    } else if (navigator.clipboard) {
+      await navigator.clipboard.writeText(shareUrl);
+      statusText.textContent = "试玩链接已复制";
+    } else {
+      copyWithFallback(shareUrl);
+      statusText.textContent = "试玩链接已复制";
+    }
+  } catch (error) {
+    if (error.name !== "AbortError") {
+      copyWithFallback(text);
+      statusText.textContent = "分享文本已复制";
+    }
+  }
+});
+
 difficultyButtons.forEach((button) => {
   button.addEventListener("click", () => setDifficulty(button.dataset.difficulty));
 });
+
+function copyWithFallback(text) {
+  const field = document.createElement("textarea");
+  field.value = text;
+  field.setAttribute("readonly", "");
+  field.style.position = "fixed";
+  field.style.left = "-9999px";
+  document.body.appendChild(field);
+  field.select();
+  document.execCommand("copy");
+  document.body.removeChild(field);
+}
