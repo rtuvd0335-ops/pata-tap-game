@@ -14,7 +14,7 @@
             <span class="logo-mark" aria-hidden="true">啪</span>
             <div>
               <h1>啪嗒挑战</h1>
-              <p id="statusText">进度会下跌，越接近满格越快</p>
+              <p id="statusText">打中移动目标，稳住进度条</p>
             </div>
           </div>
 
@@ -45,13 +45,14 @@
         <div class="stage-area" id="stageArea">
           <div class="photo-frame">
             <img id="sequenceImage" alt="序列图片" draggable="false" />
+            <canvas id="gameCanvas" aria-label="移动目标游戏区域"></canvas>
             <div class="photo-shine" aria-hidden="true"></div>
           </div>
 
           <div class="stage-overlay" id="startOverlay">
             <div class="overlay-panel">
               <h2>顺序解锁</h2>
-              <p>连续点击把进度顶满，停手会下跌，越到后面越考验手速。</p>
+              <p>追着画面里的目标打，命中会涨进度，打空会掉进度，越到后面越快。</p>
               <button class="primary-btn" id="startButton" type="button">开始</button>
             </div>
           </div>
@@ -62,9 +63,9 @@
             <span id="imageName">00001.jpg</span>
             <span id="tapHint">下跌 4.8%/秒</span>
           </div>
-          <button class="progress-track" id="progressTrack" type="button" aria-label="点击推进进度">
+          <div class="progress-track" id="progressTrack" aria-label="当前图片进度">
             <span id="progressFill"></span>
-          </button>
+          </div>
         </section>
 
         <footer class="controls">

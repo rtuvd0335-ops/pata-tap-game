@@ -196,6 +196,17 @@ h1 {
     filter 0.22s ease;
 }
 
+#gameCanvas {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: crosshair;
+  touch-action: none;
+}
+
 #sequenceImage.is-loaded {
   opacity: 1;
   transform: scale(1);
@@ -208,6 +219,7 @@ h1 {
 .photo-shine {
   position: absolute;
   inset: 0;
+  z-index: 3;
   pointer-events: none;
   background:
     linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.14) 38%, transparent 52%),
@@ -218,6 +230,7 @@ h1 {
 .stage-overlay {
   position: absolute;
   inset: 0;
+  z-index: 5;
   display: grid;
   place-items: center;
   background: rgba(33, 31, 28, 0.18);
@@ -320,8 +333,7 @@ h1 {
 
 .primary-btn:hover,
 .ghost-btn:hover,
-.icon-btn:hover,
-.progress-track:hover {
+.icon-btn:hover {
   transform: translateY(-1px);
 }
 
@@ -352,7 +364,7 @@ h1 {
   }
 
   .game-wrap {
-    grid-template-rows: auto minmax(430px, 1fr) auto auto;
+    grid-template-rows: auto minmax(370px, 1fr) auto auto;
   }
 
   .topbar {
@@ -379,14 +391,14 @@ h1 {
   }
 
   .stage-area {
-    min-height: 430px;
+    min-height: 370px;
     padding: 10px;
   }
 
   .photo-frame {
     width: 100%;
-    height: min(62vh, 620px);
-    min-height: 410px;
+    height: min(55vh, 620px);
+    min-height: 350px;
   }
 
   .progress-meta {
