@@ -21,6 +21,7 @@ const images = [
 ];
 
 const imageEl = document.querySelector("#sequenceImage");
+const photoFrame = document.querySelector(".photo-frame");
 const canvas = document.querySelector("#gameCanvas");
 const ctx = canvas.getContext("2d");
 const stageArea = document.querySelector("#stageArea");
@@ -81,31 +82,31 @@ updateHud();
 renderCanvas(performance.now());
 
 function hitGain(distance = target.radius) {
-  const base = Math.max(9, 22 - currentIndex * 0.3);
+  const base = Math.max(8.2, 20 - currentIndex * 0.34);
   const accuracy = 1 - clamp(distance / Math.max(1, target.radius), 0, 1);
-  const comboBoost = Math.min(5.5, Math.floor(combo / 5) * 0.8);
-  return base + accuracy * 5 + comboBoost;
+  const comboBoost = Math.min(5, Math.floor(combo / 5) * 0.72);
+  return base + accuracy * 4.7 + comboBoost;
 }
 
 function missPenalty() {
-  return 2.3 + currentIndex * 0.16 + progress * 0.024;
+  return 2.9 + currentIndex * 0.2 + progress * 0.031;
 }
 
 function decayPerSecond() {
-  const stagePressure = 3.1 + currentIndex * 0.34;
-  const progressPressure = 0.62 + Math.pow(progress / 100, 1.66) * 2.55;
+  const stagePressure = 3.7 + currentIndex * 0.42;
+  const progressPressure = 0.68 + Math.pow(progress / 100, 1.7) * 3;
   return stagePressure * progressPressure;
 }
 
 function targetRadius() {
   const scale = clamp(Math.min(canvasSize.width, canvasSize.height) / 520, 0.72, 1.1);
-  const size = 56 - currentIndex * 0.65 - progress * 0.032;
-  return clamp(size * scale, 28 * scale, 58 * scale);
+  const size = 52 - currentIndex * 0.78 - progress * 0.04;
+  return clamp(size * scale, 25 * scale, 54 * scale);
 }
 
 function targetSpeed() {
   const scale = clamp(Math.min(canvasSize.width, canvasSize.height) / 520, 0.82, 1.15);
-  return (110 + currentIndex * 15 + progress * 0.72) * scale;
+  return (126 + currentIndex * 18 + progress * 0.88) * scale;
 }
 
 function loadImage(index) {
@@ -117,6 +118,7 @@ function loadImage(index) {
   imageEl.classList.remove("is-loaded", "is-pulse");
   imageEl.onload = () => {
     imageEl.classList.add("is-loaded");
+    syncPhotoFrameRatio();
     resizeCanvas();
     resetTarget(true);
     renderCanvas(performance.now());
@@ -270,12 +272,44 @@ function setTargetVelocity(angle = Math.random() * Math.PI * 2) {
 }
 
 function kickTarget() {
-  const away = Math.atan2(target.y - canvasSize.height * 0.5, target.x - canvasSize.width * 0.5);
-  const randomTurn = (Math.random() - 0.5) * Math.PI * 1.25;
-  setTargetVelocity(away + Math.PI * 0.65 + randomTurn);
-  target.x += target.vx * 0.035;
-  target.y += target.vy * 0.035;
+  const bounds = getPlayableBounds();
+  const oldX = target.x;
+  const oldY = target.y;
+  const point = pickFarTargetPoint(bounds, target.radius, oldX, oldY);
+  target.x = point.x;
+  target.y = point.y;
+  const angle = Math.atan2(target.y - oldY, target.x - oldX) + random(-0.45, 0.45);
+  setTargetVelocity(angle);
   keepTargetInside();
+}
+
+function pickFarTargetPoint(bounds, radius, oldX, oldY) {
+  const minX = bounds.x + radius;
+  const maxX = bounds.x + bounds.width - radius;
+  const minY = bounds.y + radius;
+  const maxY = bounds.y + bounds.height - radius;
+  const safeMinX = Math.min(minX, maxX);
+  const safeMaxX = Math.max(minX, maxX);
+  const safeMinY = Math.min(minY, maxY);
+  const safeMaxY = Math.max(minY, maxY);
+  const requiredJump = Math.min(Math.hypot(bounds.width, bounds.height) * 0.42, Math.max(bounds.width, bounds.height) * 0.62);
+  let best = { x: (safeMinX + safeMaxX) / 2, y: (safeMinY + safeMaxY) / 2, distance: 0 };
+
+  for (let i = 0; i < 22; i += 1) {
+    const candidate = {
+      x: random(safeMinX, safeMaxX),
+      y: random(safeMinY, safeMaxY),
+    };
+    const distance = Math.hypot(candidate.x - oldX, candidate.y - oldY);
+    if (distance > best.distance) {
+      best = { ...candidate, distance };
+    }
+    if (distance >= requiredJump) {
+      return candidate;
+    }
+  }
+
+  return best;
 }
 
 function updateTarget(dt, time) {
@@ -559,6 +593,11 @@ function resizeCanvas() {
   } else {
     keepTargetInside();
   }
+}
+
+function syncPhotoFrameRatio() {
+  if (!imageEl.naturalWidth || !imageEl.naturalHeight) return;
+  photoFrame.style.setProperty("--photo-aspect", `${imageEl.naturalWidth} / ${imageEl.naturalHeight}`);
 }
 
 function preloadImages() {
