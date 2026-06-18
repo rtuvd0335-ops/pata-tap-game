@@ -3,6 +3,7 @@ const ctx = canvas.getContext("2d");
 
 const scoreValue = document.querySelector("#scoreValue");
 const comboValue = document.querySelector("#comboValue");
+const feverValue = document.querySelector("#feverValue");
 const timeValue = document.querySelector("#timeValue");
 const bestValue = document.querySelector("#bestValue");
 const statusText = document.querySelector("#statusText");
@@ -15,9 +16,9 @@ const difficultyButtons = [...document.querySelectorAll("[data-difficulty]")];
 const shareUrl = "https://rtuvd0335-ops.github.io/pata-tap-game/";
 
 const config = {
-  easy: { speed: 235, radius: 64, round: 45, dodge: 0.55, name: "轻松" },
-  normal: { speed: 315, radius: 58, round: 45, dodge: 0.76, name: "标准" },
-  hard: { speed: 415, radius: 50, round: 40, dodge: 0.96, name: "狂暴" },
+  easy: { speed: 235, radius: 64, round: 45, dodge: 0.55, itemEvery: 3.2, trapChance: 0.14, name: "轻松" },
+  normal: { speed: 315, radius: 58, round: 45, dodge: 0.76, itemEvery: 2.8, trapChance: 0.22, name: "标准" },
+  hard: { speed: 415, radius: 50, round: 40, dodge: 0.96, itemEvery: 2.35, trapChance: 0.32, name: "狂暴" },
 };
 
 let difficulty = "easy";
@@ -31,8 +32,17 @@ let lastTime = 0;
 let shake = 0;
 let flash = 0;
 let targetMood = 0;
+let fever = 0;
+let feverTime = 0;
+let itemSpawnTimer = 1.2;
+let dashTimer = 2.2;
 let audioContext = null;
+let musicGain = null;
+let musicTimer = null;
+let musicStep = 0;
 const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+const feverDuration = 7;
+const melody = [261.63, 329.63, 392.0, 329.63, 293.66, 349.23, 440.0, 392.0];
 
 const target = {
   x: 550,
@@ -47,6 +57,7 @@ const target = {
 const particles = [];
 const texts = [];
 const splats = [];
+const items = [];
 
 bestValue.textContent = String(best);
 timeValue.textContent = String(timeLeft);
@@ -65,9 +76,13 @@ render(0);
 function resetGame(startNow = true) {
   score = 0;
   combo = 0;
+  fever = 0;
+  feverTime = 0;
   timeLeft = config[difficulty].round;
   running = startNow;
   lastTime = performance.now();
+  itemSpawnTimer = 1.1;
+  dashTimer = 2 + Math.random() * 1.3;
   target.radius = getTargetRadius();
   target.x = canvas.width * 0.5;
   target.y = canvas.height * 0.5;
@@ -78,6 +93,7 @@ function resetGame(startNow = true) {
   particles.length = 0;
   texts.length = 0;
   splats.length = 0;
+  items.length = 0;
   updateHud();
   startOverlay.classList.toggle("is-visible", !running);
   statusText.textContent = running ? `${config[difficulty].name}模式` : "准备开始";
@@ -105,6 +121,7 @@ function update(dt) {
   }
 
   const cfg = config[difficulty];
+  const pace = 1 + Math.min(score / 900, 0.45) + (feverTime > 0 ? 0.12 : 0);
   target.x += target.vx * dt;
   target.y += target.vy * dt;
 
@@ -121,13 +138,23 @@ function update(dt) {
   const wobble = Math.sin(performance.now() / 340) * cfg.dodge;
   target.vx += wobble * 11;
   target.vy += Math.cos(performance.now() / 420) * cfg.dodge * 8;
-  limitVelocity(target, cfg.speed * 1.42);
+  dashTimer -= dt;
+  if (dashTimer <= 0) {
+    dashTimer = 2.1 + Math.random() * 1.9;
+    const angle = Math.random() * Math.PI * 2;
+    target.vx += Math.cos(angle) * cfg.speed * 0.72;
+    target.vy += Math.sin(angle) * cfg.speed * 0.72;
+    addFloatingText("闪", target.x, target.y - target.radius - 18, "#fffaf1", 22);
+  }
+  limitVelocity(target, cfg.speed * 1.42 * pace);
 
   target.squash = Math.max(0, target.squash - dt * 4.8);
   target.blush = Math.max(0, target.blush - dt * 2.1);
   shake = Math.max(0, shake - dt * 18);
   flash = Math.max(0, flash - dt * 2.4);
   targetMood += dt;
+  updateFever(dt);
+  updateItems(dt);
 
   updateList(particles, dt);
   updateList(texts, dt);
@@ -165,10 +192,12 @@ function render() {
   ctx.translate(shakeX, shakeY);
   drawBackground();
   drawSplats();
+  drawItems();
   drawTargetShadow();
   drawTarget();
   drawParticles();
   drawFloatingTexts();
+  drawFeverMeter();
   if (flash > 0) drawFlash();
   ctx.restore();
 }
@@ -237,13 +266,24 @@ function drawTarget() {
   ctx.translate(target.x, target.y);
   ctx.scale(squashX, squashY);
 
+  if (feverTime > 0) {
+    const aura = 1 + Math.sin(targetMood * 11) * 0.08;
+    ctx.save();
+    ctx.globalAlpha = 0.42;
+    ctx.fillStyle = "#f7bd38";
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.08, r * 1.05 * aura, r * 1.02 * aura, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   ctx.fillStyle = "#24211d";
   ctx.beginPath();
   ctx.ellipse(-r * 0.36, -r * 0.64, r * 0.16, r * 0.23, -0.38, 0, Math.PI * 2);
   ctx.ellipse(r * 0.36, -r * 0.64, r * 0.16, r * 0.23, 0.38, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = "#ffbc6f";
+  ctx.fillStyle = feverTime > 0 ? "#ffd15d" : "#ffbc6f";
   ctx.strokeStyle = "#7b4a28";
   ctx.lineWidth = 5;
   ctx.beginPath();
@@ -251,7 +291,7 @@ function drawTarget() {
   ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = "#fff7df";
+  ctx.fillStyle = feverTime > 0 ? "#fff4b8" : "#fff7df";
   ctx.strokeStyle = "#7b4a28";
   ctx.lineWidth = 5;
   ctx.beginPath();
@@ -328,6 +368,35 @@ function drawParticles() {
   }
 }
 
+function drawItems() {
+  for (const item of items) {
+    const alpha = clamp(item.life / item.maxLife, 0, 1);
+    const bob = Math.sin(item.pulse * 5) * 4;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(item.x, item.y + bob);
+    ctx.rotate(Math.sin(item.pulse * 2) * 0.12);
+    ctx.fillStyle = item.type === "trap" ? "#df4a36" : item.type === "clock" ? "#0f8c85" : "#f7bd38";
+    ctx.strokeStyle = "#fffaf1";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    if (item.type === "star") {
+      drawStar(0, 0, item.radius, item.radius * 0.48, 5);
+      ctx.stroke();
+    } else {
+      ctx.arc(0, 0, item.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.fillStyle = "#fffaf1";
+    ctx.font = `900 ${item.radius * 0.9}px "Microsoft YaHei", sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(item.type === "trap" ? "!" : item.type === "clock" ? "+3" : "热", 0, item.type === "star" ? 2 : 1);
+    ctx.restore();
+  }
+}
+
 function drawFloatingTexts() {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -374,6 +443,44 @@ function drawFlash() {
   ctx.restore();
 }
 
+function drawFeverMeter() {
+  const w = Math.min(canvas.width - 28, 260);
+  const h = 12;
+  const x = 14;
+  const y = 14;
+  const pct = clamp(fever / 100, 0, 1);
+  ctx.save();
+  ctx.fillStyle = "rgba(33, 31, 28, 0.24)";
+  roundRect(x, y, w, h, h / 2);
+  ctx.fill();
+  const fill = ctx.createLinearGradient(x, y, x + w, y);
+  fill.addColorStop(0, "#0f8c85");
+  fill.addColorStop(0.62, "#f7bd38");
+  fill.addColorStop(1, "#df4a36");
+  ctx.fillStyle = fill;
+  roundRect(x, y, w * pct, h, h / 2);
+  ctx.fill();
+  if (feverTime > 0) {
+    ctx.fillStyle = "#fffaf1";
+    ctx.font = '900 14px "Microsoft YaHei", sans-serif';
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText("狂热 x2", x, y + h + 6);
+  }
+  ctx.restore();
+}
+
+function roundRect(x, y, w, h, r) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
+}
+
 function drawStar(x, y, outer, inner, points) {
   ctx.beginPath();
   for (let i = 0; i < points * 2; i += 1) {
@@ -392,22 +499,33 @@ function handlePointer(event) {
   const scaleY = canvas.height / rect.height;
   const x = (event.clientX - rect.left) * scaleX;
   const y = (event.clientY - rect.top) * scaleY;
+  for (let i = items.length - 1; i >= 0; i -= 1) {
+    const item = items[i];
+    if (Math.hypot(x - item.x, y - item.y) <= item.radius * 1.08) {
+      applyItem(i, x, y);
+      return;
+    }
+  }
   const distance = Math.hypot(x - target.x, y - target.y);
 
   if (distance <= target.radius * 0.95) {
-    hitTarget(x, y);
+    hitTarget(x, y, distance);
   } else {
     combo = 0;
+    fever = Math.max(0, fever - 14);
     addFloatingText("空", x, y, "#fffaf1", 24);
     statusText.textContent = "没打中";
     updateHud();
   }
 }
 
-function hitTarget(x, y) {
+function hitTarget(x, y, distance) {
   combo += 1;
+  const accuracy = clamp(1 - distance / (target.radius * 0.95), 0, 1);
   const bonus = Math.min(8, Math.floor(combo / 3));
-  const gained = 10 + bonus * 3;
+  const centerBonus = accuracy > 0.62 ? Math.round(accuracy * 14) : 0;
+  const multiplier = feverTime > 0 ? 2 : 1;
+  const gained = (10 + bonus * 3 + centerBonus) * multiplier;
   score += gained;
   shake = Math.min(18, 5 + combo * 0.5);
   flash = 1;
@@ -416,15 +534,48 @@ function hitTarget(x, y) {
 
   addSplat(x, y);
   addParticles(x, y, combo);
-  addFloatingText(`+${gained}`, x, y - 42, combo >= 8 ? "#df4a36" : "#fffaf1", combo >= 8 ? 34 : 28);
-  playPop(190 + Math.min(combo, 12) * 24);
+  addFloatingText(`${accuracy > 0.72 ? "正中 " : ""}+${gained}`, x, y - 42, feverTime > 0 ? "#f7bd38" : combo >= 8 ? "#df4a36" : "#fffaf1", combo >= 8 ? 34 : 28);
+  addFever(accuracy > 0.72 ? 18 : 11);
+  playPop(190 + Math.min(combo, 12) * 24 + centerBonus * 3);
 
   const cfg = config[difficulty];
   const angle = Math.atan2(target.y - y, target.x - x) + (Math.random() - 0.5) * 1.2;
   const boost = cfg.speed * (1.04 + Math.min(combo, 14) * 0.025);
   target.vx = Math.cos(angle) * boost;
   target.vy = Math.sin(angle) * boost;
-  statusText.textContent = combo >= 10 ? "连击爆表" : combo >= 5 ? "手感不错" : "命中";
+  statusText.textContent = feverTime > 0 ? "狂热加分" : combo >= 10 ? "连击爆表" : combo >= 5 ? "手感不错" : "命中";
+  updateHud();
+}
+
+function applyItem(index, x, y) {
+  const item = items.splice(index, 1)[0];
+  if (item.type === "clock") {
+    timeLeft = Math.min(config[difficulty].round + 8, timeLeft + 3);
+    score += feverTime > 0 ? 50 : 25;
+    addFever(10);
+    addFloatingText("+3秒", x, y - 28, "#0f8c85", 28);
+    statusText.textContent = "加时";
+    playPop(520);
+  } else if (item.type === "star") {
+    const gained = feverTime > 0 ? 140 : 70;
+    score += gained;
+    combo += 1;
+    addFever(32);
+    addFloatingText(`热度 +${gained}`, x, y - 28, "#f7bd38", 28);
+    statusText.textContent = "热度上涨";
+    playPop(660);
+  } else {
+    combo = 0;
+    score = Math.max(0, score - 30);
+    timeLeft = Math.max(0, timeLeft - 2);
+    fever = Math.max(0, fever - 28);
+    shake = 20;
+    flash = 0.7;
+    addFloatingText("-2秒", x, y - 28, "#df4a36", 30);
+    statusText.textContent = "干扰炸弹";
+    playPop(92);
+  }
+  addParticles(x, y, Math.max(combo, 4));
   updateHud();
 }
 
@@ -479,6 +630,7 @@ function addSplat(x, y) {
 function updateHud() {
   scoreValue.textContent = String(score);
   comboValue.textContent = String(combo);
+  feverValue.textContent = feverTime > 0 ? "MAX" : String(Math.floor(fever));
   timeValue.textContent = String(Math.ceil(timeLeft));
 }
 
@@ -492,20 +644,74 @@ function setDifficulty(next) {
 }
 
 function playPop(frequency) {
-  if (muted || !AudioContextClass) return;
-  audioContext ||= new AudioContextClass();
-  const now = audioContext.currentTime;
-  const osc = audioContext.createOscillator();
-  const gain = audioContext.createGain();
+  if (muted) return;
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
   osc.frequency.setValueAtTime(frequency, now);
   osc.frequency.exponentialRampToValueAtTime(frequency * 0.55, now + 0.08);
   osc.type = "triangle";
   gain.gain.setValueAtTime(0.12, now);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
   osc.connect(gain);
-  gain.connect(audioContext.destination);
+  gain.connect(ctx.destination);
   osc.start(now);
   osc.stop(now + 0.12);
+}
+
+function ensureAudio() {
+  if (!AudioContextClass) return null;
+  audioContext ||= new AudioContextClass();
+  if (audioContext.state === "suspended") {
+    audioContext.resume();
+  }
+  return audioContext;
+}
+
+function startMusic() {
+  const ctx = ensureAudio();
+  if (!ctx || musicTimer) return;
+  musicGain = ctx.createGain();
+  musicGain.gain.setValueAtTime(muted ? 0 : 0.045, ctx.currentTime);
+  musicGain.connect(ctx.destination);
+  const playBeat = () => {
+    if (!musicGain) return;
+    const now = ctx.currentTime;
+    const feverPitch = feverTime > 0 ? 1.5 : 1;
+    playNote(melody[musicStep % melody.length] * feverPitch, now, 0.16, "sine", 0.32);
+    if (musicStep % 2 === 0) {
+      playNote(melody[(musicStep + 4) % melody.length] * 0.5, now, 0.22, "triangle", 0.18);
+    }
+    musicStep += 1;
+  };
+  playBeat();
+  musicTimer = window.setInterval(playBeat, 265);
+}
+
+function playNote(frequency, when, duration, type, volume) {
+  if (!audioContext || !musicGain) return;
+  const osc = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(frequency, when);
+  gain.gain.setValueAtTime(0.0001, when);
+  gain.gain.exponentialRampToValueAtTime(volume, when + 0.018);
+  gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+  osc.connect(gain);
+  gain.connect(musicGain);
+  osc.start(when);
+  osc.stop(when + duration + 0.03);
+}
+
+function setMuted(next) {
+  muted = next;
+  muteButton.textContent = muted ? "×" : "♪";
+  muteButton.setAttribute("aria-label", muted ? "静音" : "声音");
+  if (musicGain && audioContext) {
+    musicGain.gain.setTargetAtTime(muted ? 0 : 0.045, audioContext.currentTime, 0.05);
+  }
 }
 
 function limitVelocity(body, max) {
@@ -518,6 +724,78 @@ function limitVelocity(body, max) {
 
 function randomSign() {
   return Math.random() > 0.5 ? 1 : -1;
+}
+
+function updateFever(dt) {
+  if (feverTime > 0) {
+    feverTime = Math.max(0, feverTime - dt);
+    fever = (feverTime / feverDuration) * 100;
+    if (feverTime <= 0) {
+      fever = 0;
+      statusText.textContent = `${config[difficulty].name}模式`;
+    }
+  } else {
+    fever = Math.max(0, fever - dt * 1.2);
+  }
+}
+
+function addFever(amount) {
+  if (feverTime > 0) {
+    fever = Math.min(100, fever + amount * 0.16);
+    return;
+  }
+  fever = clamp(fever + amount, 0, 100);
+  if (fever >= 100) {
+    feverTime = feverDuration;
+    fever = 100;
+    flash = 1;
+    shake = 16;
+    addFloatingText("狂热 x2", target.x, target.y - target.radius - 34, "#f7bd38", 34);
+    statusText.textContent = "狂热开始";
+    playPop(760);
+  }
+}
+
+function updateItems(dt) {
+  itemSpawnTimer -= dt;
+  if (itemSpawnTimer <= 0) {
+    spawnItem();
+    const cfg = config[difficulty];
+    itemSpawnTimer = cfg.itemEvery * (0.68 + Math.random() * 0.68);
+  }
+
+  for (let i = items.length - 1; i >= 0; i -= 1) {
+    const item = items[i];
+    item.life -= dt;
+    item.pulse += dt;
+    if (item.life <= 0) {
+      items.splice(i, 1);
+    }
+  }
+}
+
+function spawnItem() {
+  if (items.length >= 3 || canvas.width < 1 || canvas.height < 1) return;
+  const cfg = config[difficulty];
+  const roll = Math.random();
+  const type = roll < cfg.trapChance ? "trap" : roll < cfg.trapChance + 0.34 ? "clock" : "star";
+  const radius = Math.round(clamp(canvas.width / 16, 20, 30));
+  const pad = radius + 18;
+  let x = pad + Math.random() * Math.max(1, canvas.width - pad * 2);
+  let y = pad + canvas.height * 0.12 + Math.random() * Math.max(1, canvas.height * 0.58);
+  if (Math.hypot(x - target.x, y - target.y) < target.radius * 1.8) {
+    x = canvas.width - x;
+    y = clamp(y + target.radius * 1.7, pad, canvas.height - pad);
+  }
+  items.push({
+    type,
+    x,
+    y,
+    radius,
+    pulse: Math.random() * Math.PI,
+    life: type === "trap" ? 4.5 : 5.7,
+    maxLife: type === "trap" ? 4.5 : 5.7,
+  });
 }
 
 function resizeCanvas() {
@@ -541,6 +819,7 @@ function resizeCanvas() {
   scaleList(particles, scaleX, scaleY);
   scaleList(texts, scaleX, scaleY);
   scaleList(splats, scaleX, scaleY);
+  scaleList(items, scaleX, scaleY);
   render(0);
 }
 
@@ -560,12 +839,16 @@ function clamp(value, min, max) {
 }
 
 canvas.addEventListener("pointerdown", handlePointer);
-startButton.addEventListener("click", () => resetGame(true));
-resetButton.addEventListener("click", () => resetGame(true));
+startButton.addEventListener("click", () => {
+  startMusic();
+  resetGame(true);
+});
+resetButton.addEventListener("click", () => {
+  startMusic();
+  resetGame(true);
+});
 muteButton.addEventListener("click", () => {
-  muted = !muted;
-  muteButton.textContent = muted ? "×" : "♪";
-  muteButton.setAttribute("aria-label", muted ? "静音" : "声音");
+  setMuted(!muted);
 });
 
 shareButton.addEventListener("click", async () => {

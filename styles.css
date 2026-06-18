@@ -120,10 +120,10 @@ h1 {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(76px, 1fr));
+  grid-template-columns: repeat(5, minmax(68px, 1fr));
   gap: 10px;
   width: 100%;
-  max-width: 520px;
+  max-width: 640px;
   min-width: 0;
 }
 
@@ -305,16 +305,16 @@ h1 {
 
   .stats {
     width: 100%;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .stat {
     min-height: 52px;
-    padding: 8px;
+    padding: 7px;
   }
 
   .stat strong {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .stage-area {
