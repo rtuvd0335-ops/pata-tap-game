@@ -45,14 +45,18 @@ button:focus-visible {
 }
 
 .app-shell {
+  width: 100%;
   min-height: 100%;
   display: grid;
   place-items: center;
+  overflow-x: hidden;
   padding: 22px;
 }
 
 .game-wrap {
-  width: min(1180px, 100%);
+  width: 100%;
+  max-width: 1180px;
+  min-width: 0;
   display: grid;
   grid-template-rows: auto minmax(420px, 1fr) auto;
   gap: 14px;
@@ -118,10 +122,13 @@ h1 {
   display: grid;
   grid-template-columns: repeat(4, minmax(76px, 1fr));
   gap: 10px;
-  width: min(520px, 100%);
+  width: 100%;
+  max-width: 520px;
+  min-width: 0;
 }
 
 .stat {
+  min-width: 0;
   min-height: 58px;
   border-radius: 8px;
   border: 1px solid #eadfcd;
@@ -176,7 +183,8 @@ h1 {
 }
 
 .overlay-panel {
-  width: min(360px, calc(100% - 36px));
+  width: calc(100% - 36px);
+  max-width: 360px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.7);
   background: rgba(255, 250, 241, 0.96);

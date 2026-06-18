@@ -50,6 +50,16 @@ const splats = [];
 
 bestValue.textContent = String(best);
 timeValue.textContent = String(timeLeft);
+resizeCanvas();
+if ("ResizeObserver" in window) {
+  const canvasObserver = new ResizeObserver(resizeCanvas);
+  canvasObserver.observe(canvas);
+} else {
+  window.addEventListener("resize", resizeCanvas);
+}
+window.addEventListener("orientationchange", () => {
+  window.setTimeout(resizeCanvas, 220);
+});
 render(0);
 
 function resetGame(startNow = true) {
@@ -58,7 +68,7 @@ function resetGame(startNow = true) {
   timeLeft = config[difficulty].round;
   running = startNow;
   lastTime = performance.now();
-  target.radius = config[difficulty].radius;
+  target.radius = getTargetRadius();
   target.x = canvas.width * 0.5;
   target.y = canvas.height * 0.5;
   target.vx = config[difficulty].speed * randomSign();
@@ -164,32 +174,35 @@ function render() {
 }
 
 function drawBackground() {
-  const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  const w = canvas.width;
+  const h = canvas.height;
+  const sceneScale = clamp(w / 1100, 0.68, 1.12);
+  const sky = ctx.createLinearGradient(0, 0, 0, h);
   sky.addColorStop(0, "#b9e1dc");
   sky.addColorStop(0.62, "#f3dca7");
   sky.addColorStop(1, "#d9995c");
   ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, w, h);
 
   ctx.fillStyle = "rgba(255,255,255,0.56)";
-  drawCloud(120, 98, 1.1);
-  drawCloud(880, 86, 0.92);
-  drawCloud(730, 160, 0.62);
+  drawCloud(w * 0.13, h * 0.15, sceneScale * 1.1);
+  drawCloud(w * 0.8, h * 0.13, sceneScale * 0.92);
+  drawCloud(w * 0.67, h * 0.24, sceneScale * 0.62);
 
   ctx.fillStyle = "#6a9b42";
   ctx.beginPath();
-  ctx.moveTo(0, canvas.height * 0.78);
-  ctx.bezierCurveTo(180, 478, 330, 542, 520, 497);
-  ctx.bezierCurveTo(720, 448, 875, 520, 1100, 462);
-  ctx.lineTo(canvas.width, canvas.height);
-  ctx.lineTo(0, canvas.height);
+  ctx.moveTo(0, h * 0.78);
+  ctx.bezierCurveTo(w * 0.16, h * 0.73, w * 0.3, h * 0.83, w * 0.47, h * 0.76);
+  ctx.bezierCurveTo(w * 0.65, h * 0.69, w * 0.8, h * 0.8, w, h * 0.71);
+  ctx.lineTo(w, h);
+  ctx.lineTo(0, h);
   ctx.closePath();
   ctx.fill();
 
   ctx.fillStyle = "rgba(255,255,255,0.18)";
   for (let i = 0; i < 16; i += 1) {
-    const x = i * 82 + 20;
-    ctx.fillRect(x, canvas.height - 82 + Math.sin(i) * 7, 36, 7);
+    const x = i * (w / 15) + w * 0.018;
+    ctx.fillRect(x, h - 82 * sceneScale + Math.sin(i) * 7, 36 * sceneScale, 7 * sceneScale);
   }
 }
 
@@ -505,6 +518,41 @@ function limitVelocity(body, max) {
 
 function randomSign() {
   return Math.random() > 0.5 ? 1 : -1;
+}
+
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+
+  const nextWidth = Math.max(1, Math.round(rect.width));
+  const nextHeight = Math.max(1, Math.round(rect.height));
+  if (canvas.width === nextWidth && canvas.height === nextHeight) return;
+
+  const oldWidth = canvas.width || nextWidth;
+  const oldHeight = canvas.height || nextHeight;
+  const scaleX = nextWidth / oldWidth;
+  const scaleY = nextHeight / oldHeight;
+
+  canvas.width = nextWidth;
+  canvas.height = nextHeight;
+  target.radius = getTargetRadius();
+  target.x = clamp(target.x * scaleX, target.radius + 18, nextWidth - target.radius - 18);
+  target.y = clamp(target.y * scaleY, target.radius + 18, nextHeight - target.radius - 18);
+  scaleList(particles, scaleX, scaleY);
+  scaleList(texts, scaleX, scaleY);
+  scaleList(splats, scaleX, scaleY);
+  render(0);
+}
+
+function scaleList(list, scaleX, scaleY) {
+  for (const item of list) {
+    item.x *= scaleX;
+    item.y *= scaleY;
+  }
+}
+
+function getTargetRadius() {
+  return Math.round(config[difficulty].radius * clamp(canvas.width / 760, 0.78, 1.05));
 }
 
 function clamp(value, min, max) {
