@@ -14,54 +14,64 @@
             <span class="logo-mark" aria-hidden="true">啪</span>
             <div>
               <h1>啪嗒挑战</h1>
-              <p id="statusText">准备开始</p>
+              <p id="statusText">点击推进，按顺序解锁</p>
             </div>
           </div>
 
           <div class="stats" aria-label="游戏数据">
             <div class="stat">
-              <span>分数</span>
-              <strong id="scoreValue">0</strong>
+              <span>序号</span>
+              <strong id="stageValue">1/19</strong>
             </div>
             <div class="stat">
               <span>连击</span>
               <strong id="comboValue">0</strong>
             </div>
             <div class="stat">
-              <span>热度</span>
-              <strong id="feverValue">0</strong>
+              <span>进度</span>
+              <strong id="progressValue">0%</strong>
             </div>
             <div class="stat">
-              <span>时间</span>
-              <strong id="timeValue">45</strong>
+              <span>点击</span>
+              <strong id="tapValue">0</strong>
             </div>
             <div class="stat">
-              <span>最高</span>
-              <strong id="bestValue">0</strong>
+              <span>完成</span>
+              <strong id="doneValue">0</strong>
             </div>
           </div>
         </header>
 
-        <div class="stage-area">
-          <canvas id="gameCanvas" width="1100" height="650"></canvas>
-          <div class="overlay is-visible" id="startOverlay">
+        <div class="stage-area" id="stageArea">
+          <div class="photo-frame">
+            <img id="sequenceImage" alt="序列图片" draggable="false" />
+            <div class="photo-shine" aria-hidden="true"></div>
+          </div>
+
+          <div class="stage-overlay" id="startOverlay">
             <div class="overlay-panel">
-              <h2>啪嗒挑战</h2>
-              <p>卡通啪嗒，越打越热闹。</p>
+              <h2>顺序解锁</h2>
+              <p>每张图填满进度条后进入下一张，连点越稳推进越快。</p>
               <button class="primary-btn" id="startButton" type="button">开始</button>
             </div>
           </div>
         </div>
 
-        <footer class="controls">
-          <div class="difficulty" role="group" aria-label="难度">
-            <button class="seg is-active" data-difficulty="easy" type="button">轻松</button>
-            <button class="seg" data-difficulty="normal" type="button">标准</button>
-            <button class="seg" data-difficulty="hard" type="button">狂暴</button>
+        <section class="progress-panel" aria-label="图片进度">
+          <div class="progress-meta">
+            <span id="imageName">00001.jpg</span>
+            <span id="tapHint">还需要 5 次</span>
           </div>
+          <button class="progress-track" id="progressTrack" type="button" aria-label="点击推进进度">
+            <span id="progressFill"></span>
+          </button>
+        </section>
+
+        <footer class="controls">
           <div class="actions">
-            <button class="icon-btn" id="muteButton" type="button" aria-label="声音">♪</button>
-            <button class="ghost-btn" id="resetButton" type="button">重开</button>
+            <button class="icon-btn" id="soundButton" type="button" aria-label="声音">♪</button>
+            <button class="ghost-btn" id="prevButton" type="button">上一张</button>
+            <button class="ghost-btn" id="resetButton" type="button">重来</button>
             <button class="ghost-btn" id="shareButton" type="button">分享</button>
           </div>
         </footer>
