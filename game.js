@@ -262,6 +262,13 @@ function drawTarget() {
   const r = target.radius;
   const squashX = 1 + target.squash * 0.12;
   const squashY = 1 - target.squash * 0.1;
+  const impact = clamp(target.blush, 0, 1);
+  const heat = clamp(combo / 16 + fever / 160 + impact * 0.72, 0, 1);
+  const bikiniHue = Math.round((184 + combo * 19 + fever * 1.8 + targetMood * 12) % 360);
+  const bikiniColor = feverTime > 0 ? `hsl(${bikiniHue}, 92%, 58%)` : `hsl(${bikiniHue}, 78%, ${44 + heat * 10}%)`;
+  const bikiniShade = `hsl(${bikiniHue}, 70%, ${30 + heat * 8}%)`;
+  const skinColor = `hsl(${25 - heat * 7}, ${72 + heat * 10}%, ${72 - heat * 6}%)`;
+  const skinShade = `hsl(${20 - heat * 5}, 58%, ${58 - heat * 6}%)`;
   ctx.save();
   ctx.translate(target.x, target.y);
   ctx.scale(squashX, squashY);
@@ -277,75 +284,85 @@ function drawTarget() {
     ctx.restore();
   }
 
-  ctx.fillStyle = "#24211d";
-  ctx.beginPath();
-  ctx.ellipse(-r * 0.36, -r * 0.64, r * 0.16, r * 0.23, -0.38, 0, Math.PI * 2);
-  ctx.ellipse(r * 0.36, -r * 0.64, r * 0.16, r * 0.23, 0.38, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "#6d442b";
+  ctx.lineWidth = Math.max(4, r * 0.075);
 
-  ctx.fillStyle = feverTime > 0 ? "#ffd15d" : "#ffbc6f";
-  ctx.strokeStyle = "#7b4a28";
-  ctx.lineWidth = 5;
+  ctx.fillStyle = skinColor;
   ctx.beginPath();
-  ctx.ellipse(0, -r * 0.2, r * 0.78, r * 0.72, 0, 0, Math.PI * 2);
+  ctx.ellipse(-r * 0.34, r * 0.13, r * 0.5, r * 0.72, -0.16, 0, Math.PI * 2);
+  ctx.ellipse(r * 0.34, r * 0.13, r * 0.5, r * 0.72, 0.16, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = feverTime > 0 ? "#fff4b8" : "#fff7df";
-  ctx.strokeStyle = "#7b4a28";
-  ctx.lineWidth = 5;
+  ctx.fillStyle = skinShade;
+  ctx.globalAlpha = 0.28;
   ctx.beginPath();
-  ctx.moveTo(-r * 0.82, r * 0.05);
-  ctx.bezierCurveTo(-r * 0.98, r * 0.68, -r * 0.52, r * 0.96, 0, r * 0.7);
-  ctx.bezierCurveTo(r * 0.52, r * 0.96, r * 0.98, r * 0.68, r * 0.82, r * 0.05);
-  ctx.bezierCurveTo(r * 0.72, -r * 0.08, -r * 0.72, -r * 0.08, -r * 0.82, r * 0.05);
+  ctx.ellipse(-r * 0.34, r * 0.35, r * 0.32, r * 0.24, -0.12, 0, Math.PI * 2);
+  ctx.ellipse(r * 0.34, r * 0.35, r * 0.32, r * 0.24, 0.12, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.strokeStyle = "rgba(109, 68, 43, 0.42)";
+  ctx.lineWidth = Math.max(2.5, r * 0.045);
+  ctx.beginPath();
+  ctx.moveTo(0, -r * 0.26);
+  ctx.quadraticCurveTo(-r * 0.08, r * 0.08, 0, r * 0.68);
+  ctx.stroke();
+
+  ctx.fillStyle = bikiniColor;
+  ctx.strokeStyle = "#5d3721";
+  ctx.lineWidth = Math.max(3.5, r * 0.06);
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.72, -r * 0.32);
+  ctx.quadraticCurveTo(0, -r * 0.52, r * 0.72, -r * 0.32);
+  ctx.lineTo(r * 0.47, r * 0.1);
+  ctx.quadraticCurveTo(r * 0.18, r * 0.32, 0, r * 0.42);
+  ctx.quadraticCurveTo(-r * 0.18, r * 0.32, -r * 0.47, r * 0.1);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
 
-  ctx.strokeStyle = "rgba(123, 74, 40, 0.45)";
-  ctx.lineWidth = 3;
+  ctx.fillStyle = bikiniShade;
+  ctx.globalAlpha = 0.42;
   ctx.beginPath();
-  ctx.moveTo(0, -r * 0.02);
-  ctx.quadraticCurveTo(-r * 0.04, r * 0.36, 0, r * 0.65);
+  ctx.moveTo(-r * 0.56, -r * 0.27);
+  ctx.quadraticCurveTo(0, -r * 0.39, r * 0.56, -r * 0.27);
+  ctx.lineTo(r * 0.45, -r * 0.08);
+  ctx.quadraticCurveTo(0, -r * 0.2, -r * 0.45, -r * 0.08);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.strokeStyle = "#fffaf1";
+  ctx.lineWidth = Math.max(2, r * 0.03);
+  ctx.globalAlpha = 0.74;
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.67, -r * 0.26);
+  ctx.quadraticCurveTo(0, -r * 0.43, r * 0.67, -r * 0.26);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  ctx.strokeStyle = bikiniShade;
+  ctx.lineWidth = Math.max(4, r * 0.07);
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.72, -r * 0.31);
+  ctx.lineTo(-r * 0.96, -r * 0.18);
+  ctx.moveTo(r * 0.72, -r * 0.31);
+  ctx.lineTo(r * 0.96, -r * 0.18);
   ctx.stroke();
 
-  const eyeY = -r * 0.28;
-  const blink = Math.sin(targetMood * 4) > 0.94 ? 0.15 : 1;
-  drawEye(-r * 0.24, eyeY, r * 0.09, blink);
-  drawEye(r * 0.24, eyeY, r * 0.09, blink);
-
-  ctx.strokeStyle = "#68351f";
-  ctx.lineWidth = 4;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.arc(0, -r * 0.08, r * 0.16, 0.1, Math.PI - 0.1);
-  ctx.stroke();
-
-  if (target.blush > 0) {
-    ctx.globalAlpha = Math.min(0.5, target.blush);
+  if (impact > 0) {
+    ctx.globalAlpha = Math.min(0.56, impact * 0.58);
     ctx.fillStyle = "#df4a36";
     ctx.beginPath();
-    ctx.ellipse(-r * 0.48, r * 0.22, r * 0.14, r * 0.08, -0.14, 0, Math.PI * 2);
-    ctx.ellipse(r * 0.48, r * 0.22, r * 0.14, r * 0.08, 0.14, 0, Math.PI * 2);
+    ctx.ellipse(-r * 0.42, r * 0.16, r * 0.18, r * 0.1, -0.18, 0, Math.PI * 2);
+    ctx.ellipse(r * 0.42, r * 0.16, r * 0.18, r * 0.1, 0.18, 0, Math.PI * 2);
     ctx.fill();
+    ctx.globalAlpha = 1;
   }
 
-  ctx.restore();
-}
-
-function drawEye(x, y, radius, blink) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(1, blink);
-  ctx.fillStyle = "#241f1c";
-  ctx.beginPath();
-  ctx.arc(0, 0, radius, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#fffaf1";
-  ctx.beginPath();
-  ctx.arc(radius * 0.35, -radius * 0.35, radius * 0.28, 0, Math.PI * 2);
-  ctx.fill();
   ctx.restore();
 }
 
