@@ -52,6 +52,8 @@ let running = false;
 let muted = false;
 let transitioning = false;
 let lastTapTime = 0;
+let lastFrameTime = 0;
+let loopActive = false;
 let audioContext = null;
 let musicGain = null;
 let musicTimer = null;
@@ -62,7 +64,13 @@ loadImage(0);
 updateHud();
 
 function requiredTaps(index) {
-  return Math.min(11, 5 + Math.floor(index / 3));
+  return Math.max(8, 22 - index * 0.55);
+}
+
+function decayPerSecond() {
+  const stagePressure = 4.8 + currentIndex * 0.48;
+  const progressPressure = 1 + Math.pow(progress / 100, 1.65) * 3.2;
+  return stagePressure * progressPressure;
 }
 
 function loadImage(index) {
@@ -83,7 +91,8 @@ function startGame() {
   running = true;
   startOverlay.classList.add("is-hidden");
   startMusic();
-  statusText.textContent = "点击画面或进度条";
+  startLoop();
+  statusText.textContent = "快速点击，别让进度掉下去";
   updateHud();
 }
 
@@ -96,9 +105,11 @@ function resetGame() {
   running = true;
   transitioning = false;
   lastTapTime = 0;
+  lastFrameTime = 0;
   startOverlay.classList.add("is-hidden");
   loadImage(0);
   startMusic();
+  startLoop();
   statusText.textContent = "重新开始";
   updateHud();
 }
@@ -114,18 +125,16 @@ function advanceProgress() {
   lastTapTime = now;
   taps += 1;
 
-  const need = requiredTaps(currentIndex);
-  const comboBonus = combo > 0 && combo % 5 === 0 ? 1 : 0;
-  progress = Math.min(need, progress + 1 + comboBonus);
+  const gain = requiredTaps(currentIndex);
+  const comboBonus = combo > 0 && combo % 7 === 0 ? gain * 0.38 : 0;
+  progress = Math.min(100, progress + gain + comboBonus);
   pulseImage(comboBonus > 0);
   playTap(comboBonus > 0 ? 520 : 360 + Math.min(combo, 10) * 18);
 
-  if (progress >= need) {
+  if (progress >= 100) {
     completeCurrentImage();
   } else {
-    const left = need - progress;
-    statusText.textContent = comboBonus > 0 ? "连击推进" : "继续推进";
-    tapHint.textContent = `还需要 ${left} 次`;
+    statusText.textContent = comboBonus > 0 ? "连击猛推" : progress >= 78 ? "快满了，掉得更快" : "继续推进";
   }
   updateHud();
 }
@@ -133,7 +142,7 @@ function advanceProgress() {
 function completeCurrentImage() {
   transitioning = true;
   completed = Math.max(completed, currentIndex + 1);
-  progress = requiredTaps(currentIndex);
+  progress = 100;
   updateHud();
   playTap(720);
 
@@ -178,16 +187,43 @@ function pulseImage(strong) {
 }
 
 function updateHud() {
-  const need = requiredTaps(currentIndex);
-  const pct = Math.round((progress / need) * 100);
-  const left = Math.max(0, need - progress);
+  const pct = Math.round(progress);
+  const decay = decayPerSecond();
   stageValue.textContent = `${currentIndex + 1}/${images.length}`;
   comboValue.textContent = String(combo);
   progressValue.textContent = `${pct}%`;
   tapValue.textContent = String(taps);
   doneValue.textContent = String(completed);
   progressFill.style.width = `${pct}%`;
-  tapHint.textContent = currentIndex === images.length - 1 && pct === 100 ? "已完成全部图片" : `还需要 ${left} 次`;
+  tapHint.textContent = currentIndex === images.length - 1 && pct === 100 ? "已完成全部图片" : `下跌 ${decay.toFixed(1)}%/秒`;
+}
+
+function startLoop() {
+  if (loopActive) return;
+  loopActive = true;
+  lastFrameTime = performance.now();
+  requestAnimationFrame(updateLoop);
+}
+
+function updateLoop(time) {
+  if (!running) {
+    loopActive = false;
+    return;
+  }
+
+  const dt = Math.min((time - lastFrameTime) / 1000, 0.05);
+  lastFrameTime = time;
+
+  if (!transitioning && progress > 0) {
+    const oldProgress = progress;
+    progress = Math.max(0, progress - decayPerSecond() * dt);
+    if (oldProgress >= 78 && progress < 78) {
+      statusText.textContent = "进度掉下来了";
+    }
+    updateHud();
+  }
+
+  requestAnimationFrame(updateLoop);
 }
 
 function preloadImages() {
@@ -310,7 +346,7 @@ stageArea.addEventListener("pointerdown", (event) => {
 });
 progressTrack.addEventListener("click", advanceProgress);
 startButton.addEventListener("click", () => {
-  if (currentIndex === images.length - 1 && progress >= requiredTaps(currentIndex)) {
+  if (currentIndex === images.length - 1 && progress >= 100) {
     resetGame();
   } else {
     startGame();
