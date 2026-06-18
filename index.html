@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>啪嗒挑战</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="game-wrap" aria-label="啪嗒挑战">
+        <header class="topbar">
+          <div class="brand">
+            <span class="logo-mark" aria-hidden="true">啪</span>
+            <div>
+              <h1>啪嗒挑战</h1>
+              <p id="statusText">准备开始</p>
+            </div>
+          </div>
+
+          <div class="stats" aria-label="游戏数据">
+            <div class="stat">
+              <span>分数</span>
+              <strong id="scoreValue">0</strong>
+            </div>
+            <div class="stat">
+              <span>连击</span>
+              <strong id="comboValue">0</strong>
+            </div>
+            <div class="stat">
+              <span>时间</span>
+              <strong id="timeValue">45</strong>
+            </div>
+            <div class="stat">
+              <span>最高</span>
+              <strong id="bestValue">0</strong>
+            </div>
+          </div>
+        </header>
+
+        <div class="stage-area">
+          <canvas id="gameCanvas" width="1100" height="650"></canvas>
+          <div class="overlay is-visible" id="startOverlay">
+            <div class="overlay-panel">
+              <h2>啪嗒挑战</h2>
+              <p>卡通啪嗒，越打越热闹。</p>
+              <button class="primary-btn" id="startButton" type="button">开始</button>
+            </div>
+          </div>
+        </div>
+
+        <footer class="controls">
+          <div class="difficulty" role="group" aria-label="难度">
+            <button class="seg is-active" data-difficulty="easy" type="button">轻松</button>
+            <button class="seg" data-difficulty="normal" type="button">标准</button>
+            <button class="seg" data-difficulty="hard" type="button">狂暴</button>
+          </div>
+          <div class="actions">
+            <button class="icon-btn" id="muteButton" type="button" aria-label="声音">♪</button>
+            <button class="ghost-btn" id="resetButton" type="button">重开</button>
+          </div>
+        </footer>
+      </section>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>
