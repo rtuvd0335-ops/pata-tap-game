@@ -44,6 +44,12 @@ const doneValue = document.querySelector("#doneValue");
 const shareUrl = "https://rtuvd0335-ops.github.io/pata-tap-game/";
 const AudioContextClass = window.AudioContext || window.webkitAudioContext;
 const melody = [246.94, 293.66, 329.63, 392.0, 329.63, 293.66, 261.63, 329.63];
+const hitSamples = Array.from({ length: 4 }, () => {
+  const audio = new Audio("assets/sfx/hit.mp3");
+  audio.preload = "auto";
+  audio.volume = 0.7;
+  return audio;
+});
 const canvasSize = { width: 1, height: 1, dpr: 1 };
 const target = {
   x: 0,
@@ -74,6 +80,7 @@ let audioContext = null;
 let musicGain = null;
 let musicTimer = null;
 let musicStep = 0;
+let hitSampleIndex = 0;
 
 preloadImages();
 loadImage(0);
@@ -670,6 +677,23 @@ function playTap(frequency) {
 }
 
 function playHitCue(comboLevel) {
+  if (muted) return;
+  const sample = hitSamples[hitSampleIndex];
+  hitSampleIndex = (hitSampleIndex + 1) % hitSamples.length;
+  if (sample) {
+    sample.pause();
+    sample.currentTime = 0;
+    sample.volume = Math.min(0.92, 0.68 + Math.min(comboLevel, 12) * 0.015);
+    const playPromise = sample.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => playSyntheticHitCue(comboLevel));
+    }
+    return;
+  }
+  playSyntheticHitCue(comboLevel);
+}
+
+function playSyntheticHitCue(comboLevel) {
   if (muted) return;
   const ctxAudio = ensureAudio();
   if (!ctxAudio) return;
