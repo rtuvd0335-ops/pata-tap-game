@@ -196,7 +196,7 @@ function hitTarget(x, y, distance) {
   addBurst(x, y, "#f7bd38", 12);
   addFloater(target.x, target.y - target.radius, `+${gain.toFixed(1)}%`, "#fff7df");
   pulseImage(combo > 4);
-  playTap(380 + Math.min(combo, 14) * 28);
+  playHitCue(combo);
   kickTarget();
 
   if (progress >= 100) {
@@ -667,6 +667,69 @@ function playTap(frequency) {
   gain.connect(ctxAudio.destination);
   osc.start(now);
   osc.stop(now + 0.12);
+}
+
+function playHitCue(comboLevel) {
+  if (muted) return;
+  const ctxAudio = ensureAudio();
+  if (!ctxAudio) return;
+  const now = ctxAudio.currentTime;
+  const pitchLift = Math.min(comboLevel, 12) * 4;
+  const master = ctxAudio.createGain();
+  master.gain.setValueAtTime(0.0001, now);
+  master.gain.exponentialRampToValueAtTime(0.13, now + 0.028);
+  master.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
+  master.connect(ctxAudio.destination);
+
+  playVocalTone(ctxAudio, master, 265 + pitchLift, 212 + pitchLift * 0.45, now, 0.32, 0.48);
+  playVocalTone(ctxAudio, master, 530 + pitchLift, 424 + pitchLift * 0.55, now + 0.012, 0.26, 0.16);
+  playBreath(ctxAudio, master, now + 0.018, 0.24);
+}
+
+function playVocalTone(ctxAudio, destination, startFrequency, endFrequency, when, duration, volume) {
+  const osc = ctxAudio.createOscillator();
+  const gain = ctxAudio.createGain();
+  const filter = ctxAudio.createBiquadFilter();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(startFrequency, when);
+  osc.frequency.exponentialRampToValueAtTime(endFrequency, when + duration);
+  filter.type = "bandpass";
+  filter.frequency.setValueAtTime(760, when);
+  filter.Q.setValueAtTime(1.2, when);
+  gain.gain.setValueAtTime(0.0001, when);
+  gain.gain.exponentialRampToValueAtTime(volume, when + 0.035);
+  gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(destination);
+  osc.start(when);
+  osc.stop(when + duration + 0.03);
+}
+
+function playBreath(ctxAudio, destination, when, duration) {
+  const sampleCount = Math.max(1, Math.floor(ctxAudio.sampleRate * duration));
+  const buffer = ctxAudio.createBuffer(1, sampleCount, ctxAudio.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < sampleCount; i += 1) {
+    const fade = 1 - i / sampleCount;
+    data[i] = (Math.random() * 2 - 1) * fade * 0.35;
+  }
+
+  const source = ctxAudio.createBufferSource();
+  const filter = ctxAudio.createBiquadFilter();
+  const gain = ctxAudio.createGain();
+  source.buffer = buffer;
+  filter.type = "bandpass";
+  filter.frequency.setValueAtTime(1450, when);
+  filter.Q.setValueAtTime(0.7, when);
+  gain.gain.setValueAtTime(0.0001, when);
+  gain.gain.exponentialRampToValueAtTime(0.028, when + 0.025);
+  gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(destination);
+  source.start(when);
+  source.stop(when + duration);
 }
 
 function setMuted(next) {
